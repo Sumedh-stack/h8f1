@@ -150,15 +150,15 @@ def get_result(symptoms_exp,num_days,present_disease):
     calc_condition(symptoms_exp,num_days)
     res={}
     if(present_disease[0]==second_prediction[0]):
-        res={"disease":present_disease[0],"description":description_list[present_disease[0]]}
+        res={"disease":str(present_disease[0])+" => "+str(description_list[present_disease[0]])}
         print("You may have ", present_disease[0])
         print(description_list[present_disease[0]])
 
     else:
-        res={"disease1":present_disease[0],
-        "disease2":second_prediction[0],
-        "description1":description_list[present_disease[0]],
-        "description2":description_list[second_prediction[0]]}
+        res={"disease":str(present_disease[0])+" => "+
+        str(description_list[present_disease[0]])+" OR "+
+        str(second_prediction[0])+" => "+
+        str(description_list[second_prediction[0]])}
         print("You may have ", present_disease[0], "or ", second_prediction[0])
         print(description_list[present_disease[0]])
         print(description_list[second_prediction[0]])

@@ -39,9 +39,10 @@ function App() {
   const [query, setQuery] = useState([]);
   const [queryId, setQueryId] = useState(-1);
   const [queryRes, setQueryRes] = useState([]);
+  const [disease, setDisease] = useState([]);
   useEffect(() => {}, []);
 
-  const handleNewUserMessage = (newMessage) => {
+  const handleNewUserMessage = async (newMessage) => {
     console.log(`New message incoming! ${newMessage}`);
     console.log('queryId ' + queryId);
     console.log('queryRes ' + queryRes);
@@ -81,22 +82,21 @@ function App() {
           disease_input: symptom,
           num_days: newMessage,
         }),
-      })
-        .then((res) => {
-          res.json();
-          console.log(res);
-        })
-        .then((result) => {
-          setQuery(result);
-          console.log(result);
-          setQueryId(0);
-          addResponseMessage(result[0]);
-        })
-        .catch((err) => console.log(err));
-
-      // const resQuery = ['a', 'b', 'c'];
-
-      setQueryId(1);
+      }).then((result) => {
+        result
+          .json()
+          .then(function(j) {
+            console.log(j.res);
+            setQuery(j.res);
+            setQueryId(0);
+            addResponseMessage(j.res[0]);
+            setDisease(j.present_dis);
+            setQueryId(1);
+          })
+          .catch(function(e) {
+            console.log(e);
+          });
+      });
       return;
     }
 
@@ -109,14 +109,35 @@ function App() {
 
     if (stepId == 3 && queryId == query.length) {
       console.log('result');
-      addResponseMessage('hdfg');
 
       // api call to get result
+      fetch('http://localhost:8000/results', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          symptoms_exp: queryRes,
+          num_days: duration,
+          present_disease: disease,
+        }),
+      }).then((result) => {
+        result
+          .json()
+          .then(function(j) {
+            console.log(j.disease);
+            addResponseMessage(j.disease);
+          })
+          .catch(function(e) {
+            console.log(e);
+          });
+      });
       return;
     }
-
-    // Now send the message throught the backend API
   };
+
+  // Now send the message throught the backend API
+
   return (
     <div className="App">
       <button
@@ -127,8 +148,8 @@ function App() {
           handleNewUserMessage={handleNewUserMessage}
           profileAvatar={logo}
           fullScreenMode={toggle}
-          title="My new awesome title"
-          subtitle="And my cool subtitle"
+          title="Health Care ChatBot"
+          subtitle=""
         />
       </button>
     </div>

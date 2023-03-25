@@ -21,8 +21,8 @@ def get_symptoms(request):
         num_days=data['num_days']
         print(disease_input,num_days)
         symp=get_symfromissue(disease_input,int(num_days))
-        print(symp)
-        return HttpResponse(symp)
+        print(json.dumps(symp))
+        return HttpResponse(json.dumps(symp))
 
 
 @csrf_exempt
