@@ -26,13 +26,9 @@ def get_symptoms(request):
 def get_res(request):
     if request.method=="POST":
         # print(request.POST.get('num_days'))
-        symptoms_exp=request.POST.get('symptoms_exp')
-        num_days=request.POST.get('num_days')
-        present_disease=request.POST.get('present_disease')
-        symptoms_exp=symptoms_exp[2:-2].split('", "')
-        present_disease=present_disease[2:-2].split('", "')
-        print(type(symptoms_exp))
-    
-        print(present_disease)
-        res=get_result(symptoms_exp,num_days,present_disease)
+        data = json.loads(request.body.decode("utf-8"))
+        symptoms_exp=data['symptoms_exp']
+        num_days=data['num_days']
+        present_disease=data['present_disease']
+        res=get_result(symptoms_exp,int(num_days),present_disease)
         return HttpResponse(json.dumps(res))

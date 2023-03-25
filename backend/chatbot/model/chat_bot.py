@@ -143,6 +143,9 @@ def print_disease(node):
 
 
 def get_result(symptoms_exp,num_days,present_disease):
+    getSeverityDict()
+    getDescription()
+    getprecautionDict()
     second_prediction=sec_predict(symptoms_exp)
     calc_condition(symptoms_exp,num_days)
     res={}
