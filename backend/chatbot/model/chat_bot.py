@@ -338,7 +338,7 @@ def tree_to_code(tree, feature_names):
 getSeverityDict()
 getDescription()
 getprecautionDict()
-getInfo()
+#getInfo()
 tree_to_code(clf,cols)
 print("----------------------------------------------------------------------------------------")
 
