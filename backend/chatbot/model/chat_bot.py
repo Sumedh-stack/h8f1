@@ -8,17 +8,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 import csv
+import os
 import warnings
+import joblib
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-
-training = pd.read_csv('Data/Training.csv')
-testing= pd.read_csv('Data/Testing.csv')
+training = pd.read_csv('chatbot/model/Data/Training.csv')
+testing= pd.read_csv('chatbot/model/Data/Testing.csv')
 cols= training.columns
 cols= cols[:-1]
 x = training[cols]
 y = training['prognosis']
 y1= y
+
 
 
 reduced_data = training.groupby(training['prognosis']).max()
@@ -35,23 +37,11 @@ testy    = testing['prognosis']
 testy    = le.transform(testy)
 
 
-clf1  = DecisionTreeClassifier()
-clf = clf1.fit(x_train,y_train)
-# print(clf.score(x_train,y_train))
-# print ("cross result========")
-scores = cross_val_score(clf, x_test, y_test, cv=3)
-# print (scores)
-print (scores.mean())
 
 
-model=SVC()
-model.fit(x_train,y_train)
-print("for svm: ")
-print(model.score(x_test,y_test))
-
-importances = clf.feature_importances_
-indices = np.argsort(importances)[::-1]
-features = cols
+severityDictionary=dict()
+description_list = dict()
+precautionDictionary=dict()
 
 def readn(nstr):
     engine = pyttsx3.init()
@@ -64,14 +54,7 @@ def readn(nstr):
     engine.stop()
 
 
-severityDictionary=dict()
-description_list = dict()
-precautionDictionary=dict()
 
-symptoms_dict = {}
-
-for index, symptom in enumerate(x):
-       symptoms_dict[symptom] = index
 def calc_condition(exp,days):
     sum=0
     for item in exp:
@@ -84,7 +67,7 @@ def calc_condition(exp,days):
 
 def getDescription():
     global description_list
-    with open('MasterData/symptom_Description.csv') as csv_file:
+    with open('chatbot/model/MasterData/symptom_Description.csv') as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
         for row in csv_reader:
@@ -96,7 +79,7 @@ def getDescription():
 
 def getSeverityDict():
     global severityDictionary
-    with open('MasterData/symptom_severity.csv') as csv_file:
+    with open('chatbot/model/MasterData/symptom_severity.csv') as csv_file:
 
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
@@ -110,7 +93,7 @@ def getSeverityDict():
 
 def getprecautionDict():
     global precautionDictionary
-    with open('MasterData/symptom_precaution.csv') as csv_file:
+    with open('chatbot/model/MasterData/symptom_precaution.csv') as csv_file:
 
         csv_reader = csv.reader(csv_file, delimiter=',')
         line_count = 0
@@ -136,7 +119,7 @@ def check_pattern(dis_list,inp):
     else:
         return 0,[]
 def sec_predict(symptoms_exp):
-    df = pd.read_csv('Data/Training.csv')
+    df = pd.read_csv('chatbot/model/Data/Training.csv')
     X = df.iloc[:, :-1]
     y = df['prognosis']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=20)
@@ -157,74 +140,93 @@ def print_disease(node):
     disease = le.inverse_transform(val[0])
     return list(map(lambda x:x.strip(),list(disease)))
 
-def get_issue(chk_dis):
-    while True:
-        print("\nEnter the symptom you are experiencing  \t\t",end="->")
-        disease_input = input("")
-        conf,cnf_dis=check_pattern(chk_dis,disease_input)
-        if conf==1:
-            print("searches related to input: ")
-            for num,it in enumerate(cnf_dis):
-                print(num,")",it)
-            if num!=0:
-                print(f"Select the one you meant (0 - {num}):  ", end="")
-                conf_inp = int(input(""))
-            else:
-                conf_inp=0
 
-            disease_input=cnf_dis[conf_inp]
-            return disease_input
-        else:
-            print("Enter valid symptom.")
-
-def get_sickdays():
-    while True:
-        try:
-            num_days=int(input("Okay. From how many days ? : "))
-            return num_days
-        except:
-            print("Enter valid input.")
 
 def get_result(symptoms_exp,num_days,present_disease):
     second_prediction=sec_predict(symptoms_exp)
-    # print(second_prediction)
     calc_condition(symptoms_exp,num_days)
+    res={}
     if(present_disease[0]==second_prediction[0]):
+        res={"disease":present_disease[0],"description":description_list[present_disease[0]]}
         print("You may have ", present_disease[0])
         print(description_list[present_disease[0]])
 
-        # readn(f"You may have {present_disease[0]}")
-        # readn(f"{description_list[present_disease[0]]}")
-
     else:
+        res={"disease1":present_disease[0],
+        "disease2":second_prediction[0],
+        "description1":description_list[present_disease[0]],
+        "description2":description_list[second_prediction[0]]}
         print("You may have ", present_disease[0], "or ", second_prediction[0])
         print(description_list[present_disease[0]])
         print(description_list[second_prediction[0]])
 
     # print(description_list[present_disease[0]])
     precution_list=precautionDictionary[present_disease[0]]
+    res["precution_list"]=precution_list
     print("Take following measures : ")
     for  i,j in enumerate(precution_list):
         print(i+1,")",j)
+    return res
 
-    # confidence_level = (1.0*len(symptoms_present))/len(symptoms_given)
-    # print("confidence level is " + str(confidence_level))
 
-def get_symptoms(symptoms_given):
-    print("Are you experiencing any ")
-    symptoms_exp=[]
-    for syms in list(symptoms_given):
-        inp=""
-        print(syms,"? : ",end='')
-        while True:
-            inp=input("")
-            if(inp=="yes" or inp=="no"):
-                break
+
+
+def get_symfromissue(disease_input,num_days):
+    clf= joblib.load('chatbot/model/model.sav')
+    
+
+    importances = clf.feature_importances_
+    indices = np.argsort(importances)[::-1]
+    features = cols
+
+
+    symptoms_dict = {}
+
+    for index, symptom in enumerate(x):
+        symptoms_dict[symptom] = index
+        tree=clf
+        feature_names=cols
+    
+    tree_ = tree.tree_
+    feature_name = [
+        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+        for i in tree_.feature
+    ]
+
+    chk_dis=",".join(feature_names).split(",")
+    symptoms_present = []
+    res=[]
+    
+    def recurse(node, depth):
+        indent = "  " * depth
+        if tree_.feature[node] != _tree.TREE_UNDEFINED:
+            name = feature_name[node]
+            threshold = tree_.threshold[node]
+
+            if name == disease_input:
+                val = 1
             else:
-                print("provide proper answers i.e. (yes/no) : ",end="")
-        if(inp=="yes"):
-            symptoms_exp.append(syms)
-    return symptoms_exp
+                val = 0
+            if  val <= threshold:
+                return recurse(tree_.children_left[node], depth + 1)
+            else:
+                symptoms_present.append(name)
+                return recurse(tree_.children_right[node], depth + 1)
+        else:
+            present_disease = print_disease(tree_.value[node])
+            red_cols = reduced_data.columns 
+            symptoms_given = red_cols[reduced_data.loc[present_disease].values[0].nonzero()]
+            
+            res=list(symptoms_given)
+            json_body={"res":res,"present_dis":present_disease}
+            return json_body
+    res = recurse(0, 1)
+    return res
+
+
+
+
+
 
 def tree_to_code(tree, feature_names):
     tree_ = tree.tree_
@@ -260,10 +262,7 @@ def tree_to_code(tree, feature_names):
             get_result(symp_res,num_days,present_disease)
 
     recurse(0, 1)
-getSeverityDict()
-getDescription()
-getprecautionDict()
 #getInfo()
-tree_to_code(clf,cols)
+#tree_to_code(clf,cols)
 print("----------------------------------------------------------------------------------------")
 
