@@ -15,11 +15,14 @@ def get_name(request):
 @csrf_exempt
 def get_symptoms(request):
     if request.method=="POST":
-        disease_input=request.POST.get('disease_input')
-        num_days=request.POST.get('num_days')
-        # print(disease_input,num_days)
-        symp=get_symfromissue(disease_input,num_days)
-        return HttpResponse(json.dumps(symp))
+        print(request.body)
+        data = json.loads(request.body.decode("utf-8"))
+        disease_input=data['disease_input']
+        num_days=data['num_days']
+        print(disease_input,num_days)
+        symp=get_symfromissue(disease_input,int(num_days))
+        print(symp)
+        return HttpResponse(symp)
 
 
 @csrf_exempt

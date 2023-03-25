@@ -9,7 +9,7 @@ import {
 import 'react-chat-widget/lib/styles.css';
 
 import logo from './logo.svg';
-
+import axios, * as others from 'axios';
 const STEPS = {
   NAME: 'Hey! What is your name?',
   SYMPTOM: 'Please enter the symptom you are experiencing',
@@ -69,12 +69,33 @@ function App() {
 
     if (stepId == 3 && queryId == -1) {
       setDuration(newMessage);
+      console.log(newMessage);
+      console.log(symptom, duration);
 
-      //api call we get query array
-      const resQuery = ['a', 'b', 'c'];
-      setQueryId(0);
-      setQuery(resQuery);
-      addResponseMessage(resQuery[0]);
+      fetch('http://localhost:8000/symptoms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          disease_input: symptom,
+          num_days: newMessage,
+        }),
+      })
+        .then((res) => {
+          res.json();
+          console.log(res);
+        })
+        .then((result) => {
+          setQuery(result);
+          console.log(result);
+          setQueryId(0);
+          addResponseMessage(result[0]);
+        })
+        .catch((err) => console.log(err));
+
+      // const resQuery = ['a', 'b', 'c'];
+
       setQueryId(1);
       return;
     }
